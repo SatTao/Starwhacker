@@ -9,5 +9,3 @@ These scripts will be designed to create a transversal perspective azimuthal pro
 
 [See this for reference](http://www.astro.ro/~roaj/26_3/19-dvasilca.pdf)
 
-Hope that link works. 
-
