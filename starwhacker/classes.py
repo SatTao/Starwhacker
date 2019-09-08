@@ -5,7 +5,8 @@ import configparser
 import datetime
 import math
 import json
-
+from PIL import Image ImageDraw # Handles image writing for debugging
+import datetime as dt
 
 class board:
 
@@ -30,7 +31,11 @@ class sky:
 
 		print('Making the sky')
 
+		self.pwd = os.path.dirname(__file__) # Gets absolute path to the directory that contains this file, not calling location.
+
 		self.stars = []
+
+		self.constellations = []
 
 	def getStarCount(self):
 
@@ -46,9 +51,30 @@ class sky:
 
 				self.stars.append(star().setID(int(body['id'])).setMagnitude(float(body['properties']['mag'])).setLatLon(body['geometry']['coordinates'][0],body['geometry']['coordinates'][1]))
 
-			return self
+		return self
 
+	def addConstellationsFromJSON(self, jsonfile):
 
+		return self #TODO
+
+	def drawSkyImage(self, imageDim, northBound, southBound, eastBound, westBound):
+
+		# Get dimensions of image based on bounds of skymap, assume rectangular projection. Don't allow overedge sections.
+
+		vertExtent = int(abs(northBound-southBound))
+		horizExtent = int(abs(eastBound-westBound))
+
+		if horizExtent >=vertExtent :
+			imageWidth = int(imageDim)
+			imageHeight = int(imageDim*(vertExtent/horizExtent))
+		else:
+			imageHeight = int(imageDim)
+			imageWidth = int(imageDim*(horizExtent/vertExtent))
+
+		# Create a blank, black image
+
+		pic = Image.new('RGB', (imageWidth, imageHeight), 'black') #TODO change
+		pic.save(dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png"))
 
 
 
