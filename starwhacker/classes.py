@@ -40,6 +40,12 @@ class sky:
 
 		return len(self.stars)
 
+	def populateBoundingValues(self): #TODO make this work
+
+		# Go through all the current stars and populate min and max for magnitudes, BV, and any other indicies we can.
+
+		return None
+
 	def addStarsFromJSON(self, jsonfile):
 
 		with open(jsonfile, encoding='utf8') as starfile:  # encoding ensures there are no invalid characters - some star names are not provided in unicode.
@@ -70,7 +76,7 @@ class sky:
 
 		return self #TODO
 
-	def drawSkyImage(self, imageDim, bounds):
+	def drawSkyImageRectProjection(self, imageDim, bounds):
 
 		# Get dimensions of image based on bounds of skymap, assume rectangular projection. Don't allow overedge sections.
 
@@ -109,10 +115,33 @@ class sky:
 
 				draw.ellipse([starPosx-starRad,starPosy-starRad,starPosx+starRad,starPosy+starRad],fill=(redHue,200,blueHue,0))
 
+		#TODO add some writing to this maybe?
+
+		#TODO add constellation lines
+
+		#TODO add RADEC grid
+
 		# save the image to the appropriate output folder
 
 		outputfilepath = os.path.join(os.path.dirname(__file__),'../output/images/', dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png"))
 		pic.save(outputfilepath)
+
+	def updateUnscaledStereoCoords(self, latlonCentroid, R):
+
+		for star in self.stars:
+
+			[starPosx, starPosy] = self.stereoProject([star.lon, star.lat],latlonCentroid,R)
+			star.setStereoCoords(starPosx, starPosy)
+
+		return self
+
+	def drawSkyImageStereoProjection(self, imageDim, bounds):
+
+		[westBound, southBound, eastBound, northBound] = bounds
+
+		vertExtent = int(abs(northBound-southBound))
+		horizExtent = int(abs(eastBound-westBound))
+
 
 	def linearMap(self, inputPoint, inputBounds, outputBounds):
 
@@ -124,6 +153,22 @@ class sky:
 		outy = outputBounds[3] - int(outputBounds[1] + (outputBounds[3]-outputBounds[1]) * (inputPoint[1]-inputBounds[1]) / (inputBounds[3]-inputBounds[1] )) # account for -ve y coordinates in images
 
 		return [outx, outy]
+
+	#TODO add interesting projections (equatorial hemispherical) capability.
+
+	def stereoProject(self, lonlatPoint, lonlatCentroid, R):
+
+		lon = math.radians(lonlatPoint[0])
+		lat = math.radians(lonlatPoint[1])
+		lonC = math.radians(lonlatCentroid[0])
+		latC = math.radians(lonlatCentroid[1])
+
+		k = 2*R / (1 + math.sin(latC)*math.sin(lat) + math.cos(latC)*math.cos(lat)*math.cos(lon-lonC))
+
+		projectedX = k * math.cos(lat) * math.sin(lon-lonC)
+		projectedY = k * (math.cos(latC) * math.sin(lat) - math.sin(latC) * math.cos(lat) * math.cos(lon-lonC))
+
+		return [projectedX, projectedY]
 
 class star:
 
@@ -150,11 +195,10 @@ class star:
 
 		return self
 
-	def setRADec(self, RA, dec):
+	def setStereoCoords(self, x, y):
 
-		self.RA = RA
-		self.dec = dec
-
+		self.stereoX = x
+		self.stereoY = y
 		return self
 
 	def setBVIndex(self, BV):
@@ -162,6 +206,3 @@ class star:
 		self.BV = BV
 
 		return self
-
-
-
