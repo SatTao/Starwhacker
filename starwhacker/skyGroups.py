@@ -79,16 +79,18 @@ class sky():
 
 	def doStats(self):
 
+		#FYI this will fail if there are no stars in the sky or view
+
 		# We want to know about min and max values for:
 		# RA/Dec, Magnitude, BV
 
-		RAs = list(body.RA for body in self.stars)
+		RAs = [body.RA for body in self.stars]
 		self.rangeRA = [min(RAs),max(RAs)]
-		decs = list(body.dec for body in self.stars)
+		decs = [body.dec for body in self.stars]
 		self.rangeDec = [min(decs),max(decs)]
-		mags = list(body.mag for body in self.stars)
+		mags = [body.mag for body in self.stars]
 		self.rangeMag = [min(mags),max(mags)]
-		BVs = list(body.BV for body in self.stars)
+		BVs = [body.BV for body in self.stars]
 		self.rangeBV = [min(BVs),max(BVs)]
 
 		return self
@@ -130,17 +132,30 @@ class skyView(sky):
 		config = configparser.ConfigParser()
 		config.read(os.path.join(os.path.dirname(__file__),'../config',configFileName))
 
-		self.name = viewName
+		self.name = config[viewName]['name']
+		self.configFileName=configFileName
+		self.region=viewName
 
-		# Change this to check from the bounds config:
+		self.update()
 
-		self.stars = self.fullSky.stars
-
-	def update():
+	def update(self):
 
 		# Take the config file and scrape the parent fullSky object's starlist to find stars that match our requirements
 
-		# This might include a named view self.name
+		config = configparser.ConfigParser()
+		config.read(os.path.join(os.path.dirname(__file__),'../config',self.configFileName))
+
+		lonLatBounds = [float(config[self.region]['westBound']),float(config[self.region]['eastBound']),float(config[self.region]['southBound']),float(config[self.region]['northBound'])]
+		magBounds = [float(config[self.region]['magMin']),float(config[self.region]['magMax'])]
+		BVBounds = [float(config[self.region]['BVMin']),float(config[self.region]['BVMax'])]
+
+		self.stars=[] # Remove anything existing so we can repopulate, in case the sky has changed in the meantime
+
+		for body in self.fullSky.stars:
+
+			if (lonLatBounds[0]<body.RA<lonLatBounds[1] and lonLatBounds[2]<body.dec<lonLatBounds[3] and magBounds[0]<body.mag<magBounds[1] and BVBounds[0]<body.BV<BVBounds[1]):
+
+				self.stars.append(body) # If the star passes all these filters then we will include it in this view
 
 		return self
 
