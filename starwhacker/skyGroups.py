@@ -145,22 +145,99 @@ class skyView(sky):
 		config = configparser.ConfigParser()
 		config.read(os.path.join(os.path.dirname(__file__),'../config',self.configFileName))
 
-		lonLatBounds = [float(config[self.region]['westBound']),float(config[self.region]['eastBound']),float(config[self.region]['southBound']),float(config[self.region]['northBound'])]
-		magBounds = [float(config[self.region]['magMin']),float(config[self.region]['magMax'])]
-		BVBounds = [float(config[self.region]['BVMin']),float(config[self.region]['BVMax'])]
+		self.lonLatBounds = [float(config[self.region]['westBound']),float(config[self.region]['eastBound']),float(config[self.region]['southBound']),float(config[self.region]['northBound'])]
+		self.magBounds = [float(config[self.region]['magMin']),float(config[self.region]['magMax'])]
+		self.BVBounds = [float(config[self.region]['BVMin']),float(config[self.region]['BVMax'])]
 
 		self.stars=[] # Remove anything existing so we can repopulate, in case the sky has changed in the meantime
 
 		for body in self.fullSky.stars:
 
-			if (lonLatBounds[0]<body.RA<lonLatBounds[1] and lonLatBounds[2]<body.dec<lonLatBounds[3] and magBounds[0]<body.mag<magBounds[1] and BVBounds[0]<body.BV<BVBounds[1]):
+			if (self.lonLatBounds[0]<body.RA<self.lonLatBounds[1] and self.lonLatBounds[2]<body.dec<self.lonLatBounds[3] and self.magBounds[0]<body.mag<self.magBounds[1] and self.BVBounds[0]<body.BV<self.BVBounds[1]):
 
 				self.stars.append(body) # If the star passes all these filters then we will include it in this view
 
 		return self
 
+class normalisedCentredProjection():
+
+	# A normalised centred projection is a set of x y coordinates of celestial objects which have been projected in a certain way from lat and lon, 
+	# and then normalised so that the maximum and minimum bounds are at 1 and -1 on an axis, each axis scaled equally
+	# So it may appear that one axis is not normalised, but it really is. However, the centre of the projected points is on 0,0
+	# All parameters needed are accessed from the associated skyView
+
+	def __init__(self, view):
+
+		# view is a valid skyView object
+
+		self.view = view
+
+		self.projectedStars = [] # A like for like list with the self.star attribute of the associated skyView
+		self.projectedBounds = [] # The bounds, interpolated to a certain accuracy, and then projected like other points
+		# where projectedBounds = [westBound, eastBound, southBound, northBound]
+		# and westBound itself = [[x1,y1],[x2,y2,[x3,y3],[...]...]]
+		# where points 1, 2, 3 etc are interpolated points on that line after projection.
+
+		# TODO add and include DSOs and constellations etc here too
+
+	def normalise(self):
+
+		# Do stars first, eventually this will include any and all objects listed
+
+		# TODO really this should take interpolated lines of boundaries and find the max min points of these to use for the min max and centralising calcs.
+
+		# First we centre the whole set on 0,0
+
+		xcoords = [coordSet[0] for coordSet in self.projectedStars]
+		rangeX = [min(xcoords),max(xcoords)]
+		ycoords = [coordSet[1] for coordSet in self.projectedStars]
+		rangeY = [min(ycoords),max(ycoords)]
+
+		midX = min(xcoords) + (max(xcoords)-min(xcoords))/2.0
+		midY = min(ycoords) + (max(ycoords)-min(ycoords))/2.0
+
+		xoffset = 0 - midX
+		yoffset = 0 - midY
+
+		for item in self.projectedStars:
+			item[0]=item[0]+xoffset
+			item[1]=item[1]+yoffset
+
+		# These coordSets are now centred on the origin
+
+		# Now we need to scale them. This should use boundary calcs. For now let's use stars because we haven't got boundary lines supported yet.
+
+		# Which axis has the biggest difference between min and max? How big is it?
+
+		maxDim = max(rangeX[1]-rangeX[0], rangeY[1]-rangeY[0])
+
+		# Interpolate all these points based on scaling that max dimension to -1 and + 1
+
+		interp = makeInterpolator([-maxDim/2,maxDim/2],[-1,1])
+
+		for item in self.projectedStars:
+			item[0]=interp(item[0])
+			item[1]=interp(item[1])
+
+		return None
+
+class rectangularProjection(normalisedCentredProjection):
+
+	def __init__(self, view):
+
+		super().__init__()
+
+		self.project()
+
+	def project(self):
 
 
+		# TODO, naturally
+
+		# Gotta project the celestial bodies, and also the boundaries.
+
+		return 0
+
+	def 
 
 
-# class projection():
