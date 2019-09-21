@@ -238,6 +238,4 @@ class rectangularProjection(normalisedCentredProjection):
 
 		return 0
 
-	def 
-
 
