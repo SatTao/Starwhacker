@@ -5,6 +5,7 @@
 # imports
 import os
 import json
+import math
 from starwhacker.celestialObjects import *
 from starwhacker.starTools import *
 import configparser
@@ -45,16 +46,28 @@ class boundary():
 
 				newvertices.append(vertex)
 
-				# Find the distance we 
+				# Find the how many points we need to fit on this line.
 
+				numPoints = math.ceil(ptsPerUnit*diagUnits) # Always round up.
 
+				# Only add in points if the indicated numberis greater than 2 (the two existing end points)
 
+				if numPoints > 2:
 
-				# newvertices.append() etc
+					# Get fractions of 1 representing even divisions of numPoints-1 parts .|.|.|.|.|.|.|. etc, but no 0/numpoints or numpoints/numpoints
 
+					fracs = [n/(numPoints-1) for n in range(1,numPoints-1)]
 
+					for place in fracs:
 
+						newvertex=[xinterp(place), yinterp(place)]
+						newvertices.append(newvertex)
 
+			else: # This is the final point
+
+				newvertices.append(vertex) # Closes the polygon loop.
+
+		self.denseVertices = newvertices # We now have a densely populated boundary polygon suitable for projection
 
 class sky():
 
