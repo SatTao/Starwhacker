@@ -9,6 +9,53 @@ from starwhacker.celestialObjects import *
 from starwhacker.starTools import *
 import configparser
 
+
+class boundary():
+
+	def __init__(self,boundingVertices):
+
+		self.vertices = boundingVertices
+		# An array of points (normally RADEC) defining the boundary. Assumes straight lines between all.
+		# [ [-10,-10], [-10,10], [10,10], [10,-10], [-10,-10] ] The first point is always repeated to close the loop
+
+	def interpolate(self, ptsPerUnit):
+
+		# Treats lines between points as straight, then adds in interpolated points on those lines, with even spacing.
+
+		# Iterate through the bounding vertices, take the next one, and find the defining equation.
+
+		newvertices = []
+
+		for index, vertex in enumerate(self.vertices):
+
+			if (index<len(self.vertices)-1): # Avoids the last point in the sequence
+
+				# Create interpolator functions for x and y
+
+				nextVertex = self.vertices[index+1]
+
+				xinterp = makeInterpolator([0,1],[vertex[0],nextVertex[0]])
+				yinterp = makeInterpolator([0,1],[vertex[1],nextVertex[1]])
+
+				# Calculate diagonal distance between the bounding vertices
+
+				diagUnits = diagDistance([vertex,nextVertex])
+
+				# put in the current vertex unchanged
+
+				newvertices.append(vertex)
+
+				# Find the distance we 
+
+
+
+
+				# newvertices.append() etc
+
+
+
+
+
 class sky():
 
 	def __init__(self):

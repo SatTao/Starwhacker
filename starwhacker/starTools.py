@@ -6,6 +6,7 @@
 import configparser
 import random
 import string
+import math
 
 def makeInterpolator(inputRange,outputRange):
 
@@ -28,6 +29,12 @@ def makeInterpolator(inputRange,outputRange):
 		return outMin + (point-inMin)*scaleFactor
 
 	return interp
+
+def diagDistance(vertices):
+
+	# Vertices looks like [[x1,y1],[x2,y2]]
+
+	return math.sqrt(pow((vertices[1][0]-vertices[0][0]),2)+pow((vertices[1][1]-vertices[0][1]),2))
 
 def getRandomString(length):
 
