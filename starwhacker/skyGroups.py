@@ -50,7 +50,7 @@ class boundary():
 
 				numPoints = math.ceil(ptsPerUnit*diagUnits) # Always round up.
 
-				# Only add in points if the indicated numberis greater than 2 (the two existing end points)
+				# Only add in points if the indicated number is greater than 2 (the two existing end points)
 
 				if numPoints > 2:
 
@@ -208,6 +208,13 @@ class skyView(sky):
 		self.lonLatBounds = [float(config[self.region]['westBound']),float(config[self.region]['eastBound']),float(config[self.region]['southBound']),float(config[self.region]['northBound'])]
 		self.magBounds = [float(config[self.region]['magMin']),float(config[self.region]['magMax'])]
 		self.BVBounds = [float(config[self.region]['BVMin']),float(config[self.region]['BVMax'])]
+
+		# TODO for now we can take the latlon bounds and convert them to polygon corners to create a boundary object.
+
+		boundingPolygon = [[self.lonLatBounds[0],self.lonLatBounds[3]],[self.lonLatBounds[1],self.lonLatBounds[3]],[self.lonLatBounds[1],self.lonLatBounds[2]],[self.lonLatBounds[0],self.lonLatBounds[2]],[self.lonLatBounds[0],self.lonLatBounds[3]]]
+
+		self.boundary = boundary(boundingPolygon)
+		self.boundary.interpolate(1) # Interpolate it to one point per degree roughly.
 
 		self.stars=[] # Remove anything existing so we can repopulate, in case the sky has changed in the meantime
 
