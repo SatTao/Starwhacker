@@ -42,3 +42,13 @@ def getRandomString(length):
 	lettersAndDigits = string.ascii_letters + string.digits
 	return ''.join(random.choice(lettersAndDigits) for i in range(length))
 
+def insidePolygon(point, poly):
+
+	# Checks whether a particular point lies inside a polygon boundary, useful for checking if stars are in a boundary.
+
+	# Based on this: https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
+
+	
+
+	return 0
+

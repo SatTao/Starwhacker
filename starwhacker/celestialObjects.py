@@ -23,6 +23,18 @@ class celestialObject():
 
 		self.ID = ID
 
+	def smush(self, scalefunc, centres):
+
+		self.RA=scalefunc(self.RA-centres[0])
+		self.dec=scalefunc(self.dec-centres[1])
+
+	def makeDistinctCopy(self):
+
+		# TODO implement a CO copying mechanism
+		# Until I get around to this, we just instantiate with a full argument list like normal
+
+		return None
+
 	
 class star(celestialObject):
 

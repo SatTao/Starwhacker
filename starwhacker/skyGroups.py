@@ -19,6 +19,10 @@ class boundary():
 		# An array of points (normally RADEC) defining the boundary. Assumes straight lines between all.
 		# [ [-10,-10], [-10,10], [10,10], [10,-10], [-10,-10] ] The first point is always repeated to close the loop
 
+	def smush(self, scalefunc, centres):
+
+		self.vertices=list(map(lambda i: [scalefunc(i[0]-centres[0]),scalefunc(i[1]-centres[1])],self.vertices))
+
 	def interpolate(self, ptsPerUnit):
 
 		# Treats lines between points as straight, then adds in interpolated points on those lines, with even spacing.
@@ -226,11 +230,8 @@ class skyView(sky):
 
 		return self
 
-class normalisedCentredProjection():
+class projection():
 
-	# A normalised centred projection is a set of x y coordinates of celestial objects which have been projected in a certain way from lat and lon, 
-	# and then normalised so that the maximum and minimum bounds are at 1 and -1 on an axis, each axis scaled equally
-	# So it may appear that one axis is not normalised, but it really is. However, the centre of the projected points is on 0,0
 	# All parameters needed are accessed from the associated skyView
 
 	def __init__(self, view):
@@ -240,55 +241,89 @@ class normalisedCentredProjection():
 		self.view = view
 
 		self.projectedStars = [] # A like for like list with the self.star attribute of the associated skyView
-		self.projectedBounds = [] # The bounds, interpolated to a certain accuracy, and then projected like other points
-		# where projectedBounds = [westBound, eastBound, southBound, northBound]
-		# and westBound itself = [[x1,y1],[x2,y2,[x3,y3],[...]...]]
-		# where points 1, 2, 3 etc are interpolated points on that line after projection.
+
+		self.projectedBounds=boundary(self.view.boundary.denseVertices) # The bounds, interpolated to a certain accuracy, and then projected like other points
+
+		for body in self.view.stars:
+
+			newstar = star(body.ID, 
+					body.RA, 
+					body.dec, 
+					body.mag, 
+					body.BV, 
+					body.desig, 
+					body.constellation)
+
+			self.projectedStars.append(newstar)
+
+		# So now the projected_ arrays are separate copies of the unprojected arrays in the view. We can modify them without affecting the original view.
+
+		# These arrays are in degrees latitude and longitude. We keep them that way now, without normalising. 
+		# The reason is that some projections rely on retaining the original scaling and centre (e.g. the stereo projection)
+		# The inherited projection classes will normalise and centre after projection, to avoid problems.
+		# Then drawing or PCB classes will accept normalised centred projections only for simplicity.
 
 		# TODO add and include DSOs and constellations etc here too
 
-	def normalise(self):
+	def normalise(self): # This is typically only accessed after the descendent projection classes have done their projection stuff.
 
-		# Do stars first, eventually this will include any and all objects listed
+		# Test the projectedBoundary to get min and max values. Find the dead centre. Find the greatest extent. 
 
-		# TODO really this should take interpolated lines of boundaries and find the max min points of these to use for the min max and centralising calcs.
+		xs=[vertex[0] for vertex in self.projectedBounds.vertices]
+		ys=[vertex[1] for vertex in self.projectedBounds.vertices]
 
-		# First we centre the whole set on 0,0
+		cx=min(xs) + (max(xs)-min(xs))/2
+		cy=min(ys) + (max(ys)-min(ys))/2
 
-		xcoords = [coordSet[0] for coordSet in self.projectedStars]
-		rangeX = [min(xcoords),max(xcoords)]
-		ycoords = [coordSet[1] for coordSet in self.projectedStars]
-		rangeY = [min(ycoords),max(ycoords)]
+		# Centralise the boundaries by subracting the centres from each axis
 
-		midX = min(xcoords) + (max(xcoords)-min(xcoords))/2.0
-		midY = min(ycoords) + (max(ycoords)-min(ycoords))/2.0
+		xs=list(map(lambda x:x-cx,xs))
+		ys=list(map(lambda y:y-cy,ys))
 
-		xoffset = 0 - midX
-		yoffset = 0 - midY
+		# Find which axis has the greater extent
 
-		for item in self.projectedStars:
-			item[0]=item[0]+xoffset
-			item[1]=item[1]+yoffset
+		greater = xs if max((max(xs)-min(xs)),(max(ys)-min(ys)))==(max(xs)-min(xs)) else ys
 
-		# These coordSets are now centred on the origin
+		# Set up a scaling interpolating function
 
-		# Now we need to scale them. This should use boundary calcs. For now let's use stars because we haven't got boundary lines supported yet.
+		scale=makeInterpolator([min(greater),max(greater)],[-1,1])
 
-		# Which axis has the biggest difference between min and max? How big is it?
+		# Use to scale everything in the projected arrays until it's all between -1 and 1 and centred on 0,0
 
-		maxDim = max(rangeX[1]-rangeX[0], rangeY[1]-rangeY[0])
+		self.projectedBounds.smush(scale,[cx,cy])
+		for body in self.projectedStars:
+			body.smush(scale,[cx,cy])
+		# Other smush functions go here.
 
-		# Interpolate all these points based on scaling that max dimension to -1 and + 1
+		return self
 
-		interp = makeInterpolator([-maxDim/2,maxDim/2],[-1,1])
+	def doStats(self):
 
-		for item in self.projectedStars:
-			item[0]=interp(item[0])
-			item[1]=interp(item[1])
+		#FYI this will fail if there are no stars
 
-		return None
+		# We want to know about min and max values for:
+		# RA/Dec
 
-class rectangularProjection(normalisedCentredProjection):
+		RAs = [body.RA for body in self.projectedStars]
+		self.rangeRA = [min(RAs),max(RAs)]
+		decs = [body.dec for body in self.projectedStars]
+		self.rangeDec = [min(decs),max(decs)]
+
+		return self
+
+	def vitalStatistics(self):
+
+		# Print out a summary of the stars and ranges in our list of stars
+
+		print('\nThis {} object contains:\n'.format(type(self)))
+		print('STARS ({0})'.format(len(self.projectedStars)))
+		print('RA\tMin: ~{0:0.2f} \tMax: ~{1:0.2f} \tarb. units'.format(self.rangeRA[0], self.rangeRA[1]))
+		print('Dec\tMin: ~{0:0.2f} \tMax: ~{1:0.2f} \tarb. units'.format(self.rangeDec[0], self.rangeDec[1]))
+
+		print('\nCONSTELLATIONS ({0})\n'.format(0))
+
+
+class rectangularProjection(projection):
 
 	def __init__(self, view):
 
@@ -298,11 +333,8 @@ class rectangularProjection(normalisedCentredProjection):
 
 	def project(self):
 
+		# For a rectangular projection we need to do no work at all.
 
-		# TODO, naturally
-
-		# Gotta project the celestial bodies, and also the boundaries.
-
-		return 0
+		return 1
 
 

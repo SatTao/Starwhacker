@@ -19,5 +19,15 @@ s_1 = skyView(s,'bounds.ini','testRegion')
 s_1.doStats().vitalStatistics()
 
 print(len(s_1.boundary.denseVertices))
+
+p1 = projection(s_1)
+p1.doStats().vitalStatistics()
+
+p1.normalise()
+
+p1.doStats().vitalStatistics()
+
+# print(p1.projectedBounds.vertices)
+
 # s.drawSkyImageRectProjection(4000,[-10,-10,10,10])
 # s.drawSkyImageStereoProjection(4000,[-10,-10,10,10])
