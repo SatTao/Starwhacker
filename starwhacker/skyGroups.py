@@ -400,6 +400,11 @@ class drawing():
 
 		self.majorDim = majorDim # The major dimension of the exported image
 
+		self.storagePath = os.path.join(os.path.dirname(__file__),'../output/images/',self.projection.view.name)
+
+		if not os.path.isdir(self.storagePath):
+			os.mkdir(self.storagePath)
+
 		self.draw()
 
 	def draw(self):
@@ -417,6 +422,8 @@ class drawing():
 
 		draw = ImageDraw.Draw(pic) # Create a drawing object
 
+		# Draw in the stars
+
 		for body in self.projection.projectedStars:
 
 			starRad = math.ceil(6 * (1 - (body.mag / (self.projection.view.rangeMag[1] - self.projection.view.rangeMag[0]))))
@@ -428,6 +435,22 @@ class drawing():
 
 			draw.ellipse([starPosx-starRad,starPosy-starRad,starPosx+starRad,starPosy+starRad],fill=(redHue,200,blueHue,0))
 
-		outputfilepath = os.path.join(os.path.dirname(__file__),'../output/images/', dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png"))
+		# Draw in the boundary IN THE FUTURE use the jointing function to smooth these curves multicoord
+
+		for index, start in enumerate(self.projection.projectedBounds.vertices):
+
+			if index < len(self.projection.projectedBounds.vertices)-1:
+
+				x1 = round(scaleX(start[0]))
+				y1 = round(scaleY(start[1]))
+				end = self.projection.projectedBounds.vertices[index+1]
+				x2 = round(scaleX(end[0]))
+				y2 = round(scaleY(end[1]))
+
+				col='yellow' if index%2==0 else 'black'
+
+				draw.line([x1,y1,x2,y2],width=1,fill=col)
+
+		outputfilepath = os.path.join(self.storagePath, dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f.png"))
 		pic.save(outputfilepath)
 	
