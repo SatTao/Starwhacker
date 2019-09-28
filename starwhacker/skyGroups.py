@@ -9,6 +9,8 @@ import math
 from starwhacker.celestialObjects import *
 from starwhacker.starTools import *
 import configparser
+from PIL import Image, ImageDraw
+import datetime as dt
 
 
 class boundary():
@@ -295,6 +297,8 @@ class projection():
 			body.smush(scale,[cx,cy])
 		# Other smush functions go here.
 
+		# TODO round the numbers to reasonable accuracy here?
+
 		return self
 
 	def doStats(self):
@@ -327,14 +331,103 @@ class rectangularProjection(projection):
 
 	def __init__(self, view):
 
-		super().__init__()
+		super().__init__(view)
 
 		self.project()
 
 	def project(self):
 
-		# For a rectangular projection we need to do no work at all.
+		# For a rectangular projection we need to do no work at all on boundaries or stars
 
 		return 1
 
+class stereoProjection(projection):
 
+	def __init__(self, view, lonlatCentroid=[0,0], R=100):
+
+		super().__init__(view)
+
+		self.lonlatCentroid=lonlatCentroid
+		self.R=R
+
+		self.project()
+
+	def project(self):
+
+		# We need to project the boundary and stars, and later on more objects too.
+
+		# Boundary first. This is not yet a normalised boundary, the coords are in degrees.
+
+		self.projectedBounds.vertices=list(map(self.lonlatToStereo, self.projectedBounds.vertices))
+
+		# Then we need to do the stars
+
+		for body in self.projectedStars:
+
+			pro=self.lonlatToStereo([body.RA, body.dec])
+			body.RA = pro[0]
+			body.dec = pro[1]
+
+		# And other data types after this too
+
+		return 1
+
+	def lonlatToStereo(self, point):
+
+		# This takes in a point [lon, lat] and transforms it to a cartesian output point [x,y] based on a stereo transform.
+
+		lon = math.radians(point[0])
+		lat = math.radians(point[1])
+		lonC = math.radians(self.lonlatCentroid[0])
+		latC = math.radians(self.lonlatCentroid[1])
+
+		k = 2*self.R / (1 + math.sin(latC)*math.sin(lat) + math.cos(latC)*math.cos(lat)*math.cos(lon-lonC))
+
+		projectedX = k * math.cos(lat) * math.sin(lon-lonC)
+		projectedY = k * (math.cos(latC) * math.sin(lat) - math.sin(latC) * math.cos(lat) * math.cos(lon-lonC))
+
+		return [projectedX, projectedY]	
+
+class drawing():
+
+	# A class that takes a projection and produces an output image
+
+	def __init__(self, projection, majorDim):
+
+		self.projection = projection
+
+		# This class assumes that the projection is normalised before it comes in. 
+
+		self.majorDim = majorDim # The major dimension of the exported image
+
+		self.draw()
+
+	def draw(self):
+
+		# Make simple square images for now. Doesn't matter if there's blank space.
+
+		scaleX = makeInterpolator([-1,1],[0,self.majorDim])
+		scaleY = makeInterpolator([-1,1],[self.majorDim, 0]) # Since image writing Y axis is upside down
+
+		# NB all star positions will be rounded to nearest pixel out of necessity 
+
+		# Create a blank, black image
+
+		pic = Image.new('RGB', (self.majorDim, self.majorDim), 'black')
+
+		draw = ImageDraw.Draw(pic) # Create a drawing object
+
+		for body in self.projection.projectedStars:
+
+			starRad = math.ceil(6 * (1 - (body.mag / (self.projection.view.rangeMag[1] - self.projection.view.rangeMag[0]))))
+			redHue = 200 + int(body.BV*25)
+			blueHue = 225 - int(body.BV*25)
+
+			starPosx = round(scaleX(body.RA))
+			starPosy = round(scaleY(body.dec))
+
+			draw.ellipse([starPosx-starRad,starPosy-starRad,starPosx+starRad,starPosy+starRad],fill=(redHue,200,blueHue,0))
+
+		outputfilepath = os.path.join(os.path.dirname(__file__),'../output/images/', dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S.png"))
+		pic.save(outputfilepath)
+	

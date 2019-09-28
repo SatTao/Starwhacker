@@ -48,7 +48,7 @@ def insidePolygon(point, poly):
 
 	# Based on this: https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
 
-	
-
 	return 0
 
+
+	
