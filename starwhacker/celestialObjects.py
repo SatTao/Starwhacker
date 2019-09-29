@@ -35,6 +35,8 @@ class celestialObject():
 
 		return None
 
+	# TODO add an areYouWithin? function that accepts a (polygon) boundary and returns true of it's inside. Clean up skyGroups code this way.
+
 	
 class star(celestialObject):
 
@@ -53,6 +55,32 @@ class star(celestialObject):
 		# This is the star's parent constellation:
 
 		self.constellation = Constellation if isinstance(Constellation,str) else ''
+
+class constellation():
+
+	def __init__(self, id, multiLineCoords):
+
+		self.id=id
+		self.multiVertices=multiLineCoords
+
+	def smush(self, scalefunc, centres):
+
+		# to do, to assist with scaling and normalisation etc
+
+		newMultiVert = []
+
+		for line in self.multiVertices:
+
+			newLine=[]
+
+			for coord in line:
+
+				newCoord = [scalefunc(coord[0]-centres[0]), scalefunc(coord[1]-centres[1])]
+				newLine.append(newCoord)
+
+			newMultiVert.append(newLine)
+
+		self.multiVertices=newMultiVert
 
 # Can add DSOs, galaxies and more here later
 

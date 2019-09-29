@@ -9,7 +9,7 @@ import math
 from starwhacker.celestialObjects import *
 from starwhacker.starTools import *
 import configparser
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import datetime as dt
 
 
@@ -82,6 +82,7 @@ class sky():
 		# These are made empty by default
 
 		self.stars = []
+		self.constellations = []
 		# DSOs and Galaxies might go here in the future
 
 	def addStarsFromJSON(self, jsonfile):
@@ -141,7 +142,22 @@ class sky():
 
 	def addConstellationsFromJSON(self, jsonfile):
 
-		return self #TODO
+		with open(os.path.join(os.path.dirname(__file__),'../data',jsonfile), encoding='utf8') as constfile:  # encoding ensures there are no invalid characters - some star names are not provided in unicode.
+
+			constdict = json.load(constfile)
+
+			for body in constdict['features']:
+
+				thisID = body['id']
+				thisMultiCoord = body['geometry']['coordinates']
+
+				newConstellation = constellation(thisID, thisMultiCoord)
+
+				self.constellations.append(newConstellation)
+
+		print('Added {} constellations'.format(len(self.constellations)))
+
+		return self
 
 	def doStats(self):
 
@@ -178,7 +194,7 @@ class sky():
 		print('Dec\tMin: ~{0:0.2f} \tMax: ~{1:0.2f} \tdegrees'.format(self.rangeDec[0], self.rangeDec[1]))
 		print('Mag\tMin: ~{0:0.2f} \tMax: ~{1:0.2f} '.format(self.rangeMag[0], self.rangeMag[1]))
 		print('BV\tMin: ~{0:0.2f} \tMax: ~{1:0.2f} '.format(self.rangeBV[0], self.rangeBV[1]))
-		print('\nCONSTELLATIONS ({0})\n'.format(0))
+		print('\nCONSTELLATIONS ({0})\n'.format(len(self.constellations)))
 		# TODO print('CONSTELLATIONS') data etc etc
 
 class skyView(sky):
@@ -230,6 +246,14 @@ class skyView(sky):
 
 				self.stars.append(body) # If the star passes all these filters then we will include it in this view
 
+		# Now do the same for constellations
+
+		for body in self.fullSky.constellations:
+
+			if True: # TODO Change this so it does actaully filter constellations out
+
+				self.constellations.append(body)
+
 		return self
 
 class projection():
@@ -246,6 +270,8 @@ class projection():
 
 		self.projectedBounds=boundary(self.view.boundary.denseVertices) # The bounds, interpolated to a certain accuracy, and then projected like other points
 
+		self.projectConstellations = []
+
 		for body in self.view.stars:
 
 			newstar = star(body.ID, 
@@ -257,6 +283,11 @@ class projection():
 					body.constellation)
 
 			self.projectedStars.append(newstar)
+
+		for body in self.view.constellations:
+
+			newConstellation = constellation(body.id, body.multiVertices)
+			self.projectedConstellations.append(newConstellation)
 
 		# So now the projected_ arrays are separate copies of the unprojected arrays in the view. We can modify them without affecting the original view.
 
@@ -294,6 +325,8 @@ class projection():
 
 		self.projectedBounds.smush(scale,[cx,cy])
 		for body in self.projectedStars:
+			body.smush(scale,[cx,cy])
+		for body in self.projectedConstellations:
 			body.smush(scale,[cx,cy])
 		# Other smush functions go here.
 
@@ -450,6 +483,13 @@ class drawing():
 				col='yellow' if index%2==0 else 'black'
 
 				draw.line([x1,y1,x2,y2],width=1,fill=col)
+
+		# Put in some descriptive text to annotate the image
+
+		# fnt = ImageFont.load_default()
+		fnt = ImageFont.truetype("arial.ttf", 40)
+		caption=self.projection.view.name
+		draw.text((20, self.majorDim-60), caption, font=fnt, fill='green')
 
 		outputfilepath = os.path.join(self.storagePath, dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f.png"))
 		pic.save(outputfilepath)

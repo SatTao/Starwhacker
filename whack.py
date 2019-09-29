@@ -13,14 +13,13 @@ import math
 print("Now whacking")
 
 
-s = sky().addStarsFromJSON('stars.14.json')
+s = sky().addStarsFromJSON('stars.14.json').addConstellationsFromJSON('constellations.lines.json')
 s.doStats().vitalStatistics()
-s_1 = skyView(s,'bounds.ini','testRegion')
+
+s_1 = skyView(s,'bounds.ini','testRegion') # A part of s bounded by constraints in the .ini file
 s_1.doStats().vitalStatistics()
 
-p2 = stereoProjection(s_1, [0,-40], 1)
-p2.doStats().vitalStatistics()
-p2.normalise()
-p2.doStats().vitalStatistics()
+p1 = stereoProjection(s_1, [0,0], 1).normalise() # A normalised stereo projection centred on 0 longitude, -40 latitude, with a scale factor of 1
+p1.doStats().vitalStatistics()
 
-I2 = drawing(p2,3000)
+I1 = drawing(p1,3000) # A square image 3000px wide
