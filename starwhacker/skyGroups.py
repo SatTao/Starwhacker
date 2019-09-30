@@ -12,69 +12,6 @@ import configparser
 from PIL import Image, ImageDraw, ImageFont
 import datetime as dt
 
-
-class boundary():
-
-	def __init__(self,boundingVertices):
-
-		self.vertices = boundingVertices
-		# An array of points (normally RADEC) defining the boundary. Assumes straight lines between all.
-		# [ [-10,-10], [-10,10], [10,10], [10,-10], [-10,-10] ] The first point is always repeated to close the loop
-
-	def smush(self, scalefunc, centres):
-
-		self.vertices=list(map(lambda i: [scalefunc(i[0]-centres[0]),scalefunc(i[1]-centres[1])],self.vertices))
-
-	def interpolate(self, ptsPerUnit):
-
-		# Treats lines between points as straight, then adds in interpolated points on those lines, with even spacing.
-
-		# Iterate through the bounding vertices, take the next one, and find the defining equation.
-
-		newvertices = []
-
-		for index, vertex in enumerate(self.vertices):
-
-			if (index<len(self.vertices)-1): # Avoids the last point in the sequence
-
-				# Create interpolator functions for x and y
-
-				nextVertex = self.vertices[index+1]
-
-				xinterp = makeInterpolator([0,1],[vertex[0],nextVertex[0]])
-				yinterp = makeInterpolator([0,1],[vertex[1],nextVertex[1]])
-
-				# Calculate diagonal distance between the bounding vertices
-
-				diagUnits = diagDistance([vertex,nextVertex])
-
-				# put in the current vertex unchanged
-
-				newvertices.append(vertex)
-
-				# Find the how many points we need to fit on this line.
-
-				numPoints = math.ceil(ptsPerUnit*diagUnits) # Always round up.
-
-				# Only add in points if the indicated number is greater than 2 (the two existing end points)
-
-				if numPoints > 2:
-
-					# Get fractions of 1 representing even divisions of numPoints-1 parts .|.|.|.|.|.|.|. etc, but no 0/numpoints or numpoints/numpoints
-
-					fracs = [n/(numPoints-1) for n in range(1,numPoints-1)]
-
-					for place in fracs:
-
-						newvertex=[xinterp(place), yinterp(place)]
-						newvertices.append(newvertex)
-
-			else: # This is the final point
-
-				newvertices.append(vertex) # Closes the polygon loop.
-
-		self.denseVertices = newvertices # We now have a densely populated boundary polygon suitable for projection
-
 class sky():
 
 	def __init__(self):
@@ -211,47 +148,24 @@ class skyView(sky):
 
 		self.fullSky = fullSky
 
-		config = configparser.ConfigParser()
-		config.read(os.path.join(os.path.dirname(__file__),'../config',configFileName))
-
-		self.name = config[viewName]['name']
-		self.configFileName=configFileName
-		self.region=viewName
+		self.cond = conditions(configFileName, viewName)
 
 		self.update()
 
 	def update(self):
 
-		# Take the config file and scrape the parent fullSky object's starlist to find stars that match our requirements
-
-		config = configparser.ConfigParser()
-		config.read(os.path.join(os.path.dirname(__file__),'../config',self.configFileName))
-
-		self.lonLatBounds = [float(config[self.region]['westBound']),float(config[self.region]['eastBound']),float(config[self.region]['southBound']),float(config[self.region]['northBound'])]
-		self.magBounds = [float(config[self.region]['magMin']),float(config[self.region]['magMax'])]
-		self.BVBounds = [float(config[self.region]['BVMin']),float(config[self.region]['BVMax'])]
-
-		# TODO for now we can take the latlon bounds and convert them to polygon corners to create a boundary object.
-
-		boundingPolygon = [[self.lonLatBounds[0],self.lonLatBounds[3]],[self.lonLatBounds[1],self.lonLatBounds[3]],[self.lonLatBounds[1],self.lonLatBounds[2]],[self.lonLatBounds[0],self.lonLatBounds[2]],[self.lonLatBounds[0],self.lonLatBounds[3]]]
-
-		self.boundary = boundary(boundingPolygon)
-		self.boundary.interpolate(1) # Interpolate it to one point per degree roughly.
+		self.boundary = self.cond.getBoundary()
+		self.radec = self.cond.getRADEC()
 
 		self.stars=[] # Remove anything existing so we can repopulate, in case the sky has changed in the meantime
-
 		for body in self.fullSky.stars:
-
-			if (self.lonLatBounds[0]<body.RA<self.lonLatBounds[1] and self.lonLatBounds[2]<body.dec<self.lonLatBounds[3] and self.magBounds[0]<body.mag<self.magBounds[1] and self.BVBounds[0]<body.BV<self.BVBounds[1]):
-
-				self.stars.append(body) # If the star passes all these filters then we will include it in this view
+			if body.meetsCondition(self.cond):
+				self.stars.append(body) # If the star passes all these filters then we will include it directly in this view
 
 		# Now do the same for constellations
-
+		self.constellations=[]
 		for body in self.fullSky.constellations:
-
-			if True: # TODO Change this so it does actaully filter constellations out
-
+			if body.meetsCondition(self.cond):
 				self.constellations.append(body)
 
 		return self
@@ -270,24 +184,15 @@ class projection():
 
 		self.projectedBounds=boundary(self.view.boundary.denseVertices) # The bounds, interpolated to a certain accuracy, and then projected like other points
 
-		self.projectConstellations = []
+		self.projectedConstellations = []
+
+		self.projectedRadec=view.radec.getCopy()
 
 		for body in self.view.stars:
-
-			newstar = star(body.ID, 
-					body.RA, 
-					body.dec, 
-					body.mag, 
-					body.BV, 
-					body.desig, 
-					body.constellation)
-
-			self.projectedStars.append(newstar)
+			self.projectedStars.append(body.getCopy())
 
 		for body in self.view.constellations:
-
-			newConstellation = constellation(body.id, body.multiVertices)
-			self.projectedConstellations.append(newConstellation)
+			self.projectedConstellations.append(body.getCopy())
 
 		# So now the projected_ arrays are separate copies of the unprojected arrays in the view. We can modify them without affecting the original view.
 
@@ -324,6 +229,7 @@ class projection():
 		# Use to scale everything in the projected arrays until it's all between -1 and 1 and centred on 0,0
 
 		self.projectedBounds.smush(scale,[cx,cy])
+		self.projectedRadec.smush(scale,[cx,cy])
 		for body in self.projectedStars:
 			body.smush(scale,[cx,cy])
 		for body in self.projectedConstellations:
@@ -370,7 +276,7 @@ class rectangularProjection(projection):
 
 	def project(self):
 
-		# For a rectangular projection we need to do no work at all on boundaries or stars
+		# For a rectangular projection we need to do no work at all on boundaries or stars or constellations
 
 		return 1
 
@@ -400,6 +306,39 @@ class stereoProjection(projection):
 			pro=self.lonlatToStereo([body.RA, body.dec])
 			body.RA = pro[0]
 			body.dec = pro[1]
+
+		# Then we can project out the constellations. Be aware these may cross boundaries initially, or jump from 359-0 etc. Control this later
+
+		for body in self.projectedConstellations:
+
+			newMultiVert = []
+
+			for line in body.multiVertices:
+
+				newLine=[]
+
+				for coord in line:
+
+					newCoord = self.lonlatToStereo(coord)
+					newLine.append(newCoord)
+
+				newMultiVert.append(newLine)
+
+			body.multiVertices=newMultiVert
+
+		newGrid=[]
+		for line in self.view.radec.grid:
+
+			newLine=[]
+
+			for coord in line:
+
+				newCoord = self.lonlatToStereo(coord)
+				newLine.append(newCoord)
+
+			newGrid.append(newLine)
+
+		self.projectedRadec.grid=newGrid
 
 		# And other data types after this too
 
@@ -433,7 +372,7 @@ class drawing():
 
 		self.majorDim = majorDim # The major dimension of the exported image
 
-		self.storagePath = os.path.join(os.path.dirname(__file__),'../output/images/',self.projection.view.name)
+		self.storagePath = os.path.join(os.path.dirname(__file__),'../output/images/',self.projection.view.cond.name)
 
 		if not os.path.isdir(self.storagePath):
 			os.mkdir(self.storagePath)
@@ -484,11 +423,49 @@ class drawing():
 
 				draw.line([x1,y1,x2,y2],width=1,fill=col)
 
+		# Draw in the RADEC grid
+
+		for index, line in enumerate(self.projection.projectedRadec.grid):
+
+			for jindex, start in enumerate(line):
+
+				if jindex < len(line)-1:
+
+					x1 = round(scaleX(start[0]))
+					y1 = round(scaleY(start[1]))
+					end = self.projection.projectedRadec.grid[index][jindex+1]
+					x2 = round(scaleX(end[0]))
+					y2 = round(scaleY(end[1]))
+
+					col='blue'
+
+					draw.line([x1,y1,x2,y2],width=1,fill=col)
+
+		# Draw in the constellations as lines for now. TESTING
+
+		for index, body in enumerate(self.projection.projectedConstellations):
+
+			for jindex, segment in enumerate(body.multiVertices):
+
+				for kindex, start in enumerate(segment):
+
+					if kindex < len(segment)-1:
+
+						x1 = round(scaleX(start[0]))
+						y1 = round(scaleY(start[1]))
+						end = self.projection.projectedConstellations[index].multiVertices[jindex][kindex+1]
+						x2 = round(scaleX(end[0]))
+						y2 = round(scaleY(end[1]))
+
+						col='red'
+
+						draw.line([x1,y1,x2,y2],width=1,fill=col)
+
 		# Put in some descriptive text to annotate the image
 
 		# fnt = ImageFont.load_default()
 		fnt = ImageFont.truetype("arial.ttf", 40)
-		caption=self.projection.view.name
+		caption=self.projection.view.cond.name
 		draw.text((20, self.majorDim-60), caption, font=fnt, fill='green')
 
 		outputfilepath = os.path.join(self.storagePath, dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S-%f.png"))

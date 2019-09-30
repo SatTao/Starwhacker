@@ -28,13 +28,6 @@ class celestialObject():
 		self.RA=scalefunc(self.RA-centres[0])
 		self.dec=scalefunc(self.dec-centres[1])
 
-	def makeDistinctCopy(self):
-
-		# TODO implement a CO copying mechanism
-		# Until I get around to this, we just instantiate with a full argument list like normal
-
-		return None
-
 	# TODO add an areYouWithin? function that accepts a (polygon) boundary and returns true of it's inside. Clean up skyGroups code this way.
 
 	
@@ -56,6 +49,27 @@ class star(celestialObject):
 
 		self.constellation = Constellation if isinstance(Constellation,str) else ''
 
+	def meetsCondition(self, cond):
+
+		# Return true if this object passes the tests of the filtering conditions.
+
+		if (cond.lonLatBounds[0]<self.RA<cond.lonLatBounds[1] and cond.lonLatBounds[2]<self.dec<cond.lonLatBounds[3] and cond.magBounds[0]<self.mag<cond.magBounds[1] and cond.BVBounds[0]<self.BV<cond.BVBounds[1]):
+			return True
+		else:
+			return False
+
+	def getCopy(self):
+
+		newstar = star(self.ID, 
+					self.RA, 
+					self.dec, 
+					self.mag, 
+					self.BV, 
+					self.desig, 
+					self.constellation)
+
+		return newstar
+
 class constellation():
 
 	def __init__(self, id, multiLineCoords):
@@ -64,8 +78,6 @@ class constellation():
 		self.multiVertices=multiLineCoords
 
 	def smush(self, scalefunc, centres):
-
-		# to do, to assist with scaling and normalisation etc
 
 		newMultiVert = []
 
@@ -81,6 +93,28 @@ class constellation():
 			newMultiVert.append(newLine)
 
 		self.multiVertices=newMultiVert
+
+	def meetsCondition(self, cond):
+
+		# Return true if any section of this object passes the tests of the filtering conditions.
+
+		for segment in self.multiVertices:
+			for coord in segment:
+				if (cond.lonLatBounds[0]<coord[0]<cond.lonLatBounds[1] and cond.lonLatBounds[2]<coord[1]<cond.lonLatBounds[3]):
+					return True
+		return False
+
+	def getCopy(self):
+
+		return constellation(self.id, self.multiVertices)
+
+	def getPartialCopyByCondition(self, cond):
+
+		# How to do this, and what should it do?
+
+		return 1
+
+
 
 # Can add DSOs, galaxies and more here later
 
