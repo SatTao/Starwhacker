@@ -192,7 +192,7 @@ class projection():
 			self.projectedStars.append(body.getCopy())
 
 		for body in self.view.constellations:
-			self.projectedConstellations.append(body.getCopy())
+			self.projectedConstellations.append(body.getPartialCopyByCondition(self.view.cond))
 
 		# So now the projected_ arrays are separate copies of the unprojected arrays in the view. We can modify them without affecting the original view.
 

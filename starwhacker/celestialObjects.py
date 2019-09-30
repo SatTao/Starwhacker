@@ -53,6 +53,8 @@ class star(celestialObject):
 
 		# Return true if this object passes the tests of the filtering conditions.
 
+		# TODO change to use insidePolygon as below
+
 		if (cond.lonLatBounds[0]<self.RA<cond.lonLatBounds[1] and cond.lonLatBounds[2]<self.dec<cond.lonLatBounds[3] and cond.magBounds[0]<self.mag<cond.magBounds[1] and cond.BVBounds[0]<self.BV<cond.BVBounds[1]):
 			return True
 		else:
@@ -100,7 +102,8 @@ class constellation():
 
 		for segment in self.multiVertices:
 			for coord in segment:
-				if (cond.lonLatBounds[0]<coord[0]<cond.lonLatBounds[1] and cond.lonLatBounds[2]<coord[1]<cond.lonLatBounds[3]):
+				# TODO change to use insidePolygon as below
+				if (cond.lonLatBounds[0]<coord[0]<cond.lonLatBounds[1] and cond.lonLatBounds[2]<coord[1]<cond.lonLatBounds[3]): 
 					return True
 		return False
 
@@ -112,7 +115,17 @@ class constellation():
 
 		# How to do this, and what should it do?
 
-		return 1
+		f = lambda pt : insidePolygon(pt,cond.boundary.vertices)
+
+		newmv=[]
+
+		for segment in self.multiVertices:
+			newseg=list(filter(f,segment))
+			newmv.append(newseg)
+
+		newconst=constellation(self.id,newmv)
+
+		return newconst
 
 
 

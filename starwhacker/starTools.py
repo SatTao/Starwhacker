@@ -49,7 +49,19 @@ def insidePolygon(point, poly):
 
 	# Based on this: https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
 
-	return 0
+	nvert = len(poly)
+	polyXs=[i[0] for i in poly]
+	polyYs=[i[1] for i in poly]
+
+	c=False
+	j=nvert-1
+
+	for i in range(nvert):
+		if ((polyYs[i]>point[1]) != (polyYs[j]>point[1])) and (point[0] < ((polyXs[j]-polyXs[i]) * (point[1]-polyYs[i]) / (polyYs[j]-polyYs[i]) + polyXs[i]) ):
+			c = not c
+		j=i
+
+	return c
 
 class boundary():
 
