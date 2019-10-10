@@ -31,6 +31,12 @@ def makeInterpolator(inputRange,outputRange):
 
 	return interp
 
+def alternateRACoord(point):
+
+	# returns that point minus minus and plus full range to check for +-180 line crossing etc.
+
+	return [point[0]-360, point[0], point[0]+360]
+
 def diagDistance(vertices):
 
 	# Vertices looks like [[x1,y1],[x2,y2]]
@@ -49,6 +55,12 @@ def insidePolygon(point, poly):
 
 	# Based on this: https://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon
 
+	# We take into account points which cross a boundary too since the sky wraps around
+
+	alt = alternateRACoord(point)
+	pointMinus=[alt[0],point[1]]
+	pointPlus=[alt[2],point[1]]
+
 	nvert = len(poly)
 	polyXs=[i[0] for i in poly]
 	polyYs=[i[1] for i in poly]
@@ -61,8 +73,28 @@ def insidePolygon(point, poly):
 			c = not c
 		j=i
 
-	return c
+	c1=False
+	if not c:
+		j=nvert-1
 
+		for i in range(nvert):
+			if ((polyYs[i]>pointMinus[1]) != (polyYs[j]>pointMinus[1])) and (pointMinus[0] < ((polyXs[j]-polyXs[i]) * (pointMinus[1]-polyYs[i]) / (polyYs[j]-polyYs[i]) + polyXs[i]) ):
+				c1 = not c1
+			j=i
+
+	c2=False
+	if not c1:
+		j=nvert-1
+
+		for i in range(nvert):
+			if ((polyYs[i]>pointPlus[1]) != (polyYs[j]>pointPlus[1])) and (pointPlus[0] < ((polyXs[j]-polyXs[i]) * (pointPlus[1]-polyYs[i]) / (polyYs[j]-polyYs[i]) + polyXs[i]) ):
+				c2 = not c2
+			j=i
+
+	# Are any of the c values true?
+
+	return (c1, c, c2)
+	
 class boundary():
 
 	def __init__(self,boundingVertices):

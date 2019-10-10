@@ -160,13 +160,13 @@ class skyView(sky):
 		self.stars=[] # Remove anything existing so we can repopulate, in case the sky has changed in the meantime
 		for body in self.fullSky.stars:
 			if body.meetsCondition(self.cond):
-				self.stars.append(body) # If the star passes all these filters then we will include it directly in this view
+				self.stars.append(body.getCopy(self.cond)) # If the star passes all these filters then we will include it directly in this view
 
 		# Now do the same for constellations
 		self.constellations=[]
 		for body in self.fullSky.constellations:
 			if body.meetsCondition(self.cond):
-				self.constellations.append(body)
+				self.constellations.append(body.getCopy())
 
 		return self
 
@@ -189,9 +189,9 @@ class projection():
 		self.projectedRadec=view.radec.getCopy()
 
 		for body in self.view.stars:
-			self.projectedStars.append(body.getCopy())
+			self.projectedStars.append(body.getCopy(self.view.cond)) # TODO We really want this to copy across with an adjusted RA to fit the boundary in case of overlaps
 
-		for body in self.view.constellations:
+		for body in self.view.constellations: # TODO and this one
 			self.projectedConstellations.append(body.getPartialCopyByCondition(self.view.cond))
 
 		# So now the projected_ arrays are separate copies of the unprojected arrays in the view. We can modify them without affecting the original view.
@@ -307,7 +307,7 @@ class stereoProjection(projection):
 			body.RA = pro[0]
 			body.dec = pro[1]
 
-		# Then we can project out the constellations. Be aware these may cross boundaries initially, or jump from 359-0 etc. Control this later
+		# Then we can project out the constellations. Be aware these may cross boundaries initially, or jump from 359-0 etc. Control this later TODO
 
 		for body in self.projectedConstellations:
 
@@ -344,7 +344,7 @@ class stereoProjection(projection):
 
 		return 1
 
-	def lonlatToStereo(self, point):
+	def lonlatToStereo(self, point): # TODO this is known to throw a /0 error for projecting from 0,0 for some reason
 
 		# This takes in a point [lon, lat] and transforms it to a cartesian output point [x,y] based on a stereo transform.
 
