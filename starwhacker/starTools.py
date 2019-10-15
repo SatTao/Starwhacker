@@ -94,6 +94,19 @@ def insidePolygon(point, poly):
 	# Are any of the c values true?
 
 	return (c1, c, c2)
+
+def pointXfromBoundInsidePoly(pt1, pt2, poly, insetDistance):
+
+	return [1,1]
+
+def crossesBoundary(pt1, pt2, poly):
+
+	inside1 = insidePolygon(pt1, poly)
+	inside2 = insidePolygon(pt2, poly)
+
+	if (any(inside1) and not any(inside2)) or (any(inside2) and not any(inside1)):
+		return True
+	return False
 	
 class boundary():
 
