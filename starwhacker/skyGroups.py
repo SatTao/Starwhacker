@@ -189,9 +189,9 @@ class projection():
 		self.projectedRadec=view.radec.getCopy()
 
 		for body in self.view.stars:
-			self.projectedStars.append(body.getCopy(self.view.cond)) # TODO We really want this to copy across with an adjusted RA to fit the boundary in case of overlaps
+			self.projectedStars.append(body.getCopy(self.view.cond)) 
 
-		for body in self.view.constellations: # TODO and this one
+		for body in self.view.constellations:
 			self.projectedConstellations.append(body.getPartialCopyByCondition(self.view.cond))
 
 		# So now the projected_ arrays are separate copies of the unprojected arrays in the view. We can modify them without affecting the original view.

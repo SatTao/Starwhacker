@@ -28,8 +28,6 @@ class celestialObject():
 		self.RA=scalefunc(self.RA-centres[0])
 		self.dec=scalefunc(self.dec-centres[1])
 
-	# TODO add an areYouWithin? function that accepts a (polygon) boundary and returns true of it's inside. Clean up skyGroups code this way.
-
 	
 class star(celestialObject):
 
@@ -124,8 +122,16 @@ class constellation():
 		newmv=[]
 
 		for segment in self.multiVertices:
-			newseg=list(filter(f,segment))
-			newmv.append(newseg)
+			seg=[]
+			for coord in segment:
+				inside = insidePolygon([coord[0], coord[1]], cond.boundary.vertices)
+				if any(inside):
+					mod=0
+					if not inside[1]:
+						mod=-180 if inside[0] else 180
+					coord[0]=coord[0]+mod
+				seg.append(coord)
+			newmv.append(seg)
 
 		newconst=constellation(self.id,newmv)
 
