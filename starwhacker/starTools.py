@@ -97,6 +97,12 @@ def insidePolygon(point, poly):
 
 def pointXfromBoundInsidePoly(pt1, pt2, poly, insetDistance):
 
+	# TODO This is the next thing to build out.
+	# We will have established that one of these points in inside the boundary, and one outside.
+	# We should get the formula of the line in coord space that travels from inside out, and then somehow interpolate it.
+	# We need to idenitfy which edge of the polygon boundary it crosses (be careful of solving simultaneously because it might jump backwards to the rear edge of the boundary as easily)
+	# Then find the crossing point. Then travel down the line inside the polygon a set inset distance. Then finally report the point.
+
 	return [1,1]
 
 def crossesBoundary(pt1, pt2, poly):
