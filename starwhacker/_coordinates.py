@@ -78,7 +78,7 @@ class position():
 	def scaleAndCentre(self, scalefunc, centre):
 		
 		'''
-		Scales and centres its own coordinates, given a scale function 'scalefunc' and a new centroid 'centre'.
+		Scales and centres its own coordinates, given a scale function 'scalefunc' and the old centroid 'centre'.
 
 		scalefunc is a linear interpolator function made with makeInterpolator.
 
@@ -86,7 +86,31 @@ class position():
 		'''
 
 		self.RA=scalefunc(self.RA-centre.RA)
-		self.dec=scalefunc(self.Dec-centre.dec)
+		self.dec=scalefunc(self.dec-centre.dec)
+
+		return None
+
+	def stereoProject(self, lonLatCentroid, R):
+		'''
+		Stereo transforms from a RA Dec coordinate to a cartesian coordinate following a projection. 
+		'''
+
+		# TODO this is known to throw a /0 error for projecting from 0,0 for some reason
+
+		lon = math.radians(self.RA)
+		lat = math.radians(self.dec)
+		lonC = math.radians(lonLatCentroid.RA)
+		latC = math.radians(lonLatCentroid.dec)
+
+		k = 2*R / (1 + math.sin(latC)*math.sin(lat) + math.cos(latC)*math.cos(lat)*math.cos(lon-lonC))
+
+		projectedX = k * math.cos(lat) * math.sin(lon-lonC)
+		projectedY = k * (math.cos(latC) * math.sin(lat) - math.sin(latC) * math.cos(lat) * math.cos(lon-lonC))
+
+		self.RA=projectedX
+		self.dec=projectedY
+
+		return None
 
 
 ##--------------------------------------------------------------------------------------------------------------------------------##
@@ -133,7 +157,7 @@ class polyline():
 
 	def scaleAndCentre(self, scalefunc, centre):
 		'''
-		Scales and centres the coordinates of its vertices, given a scale function 'scalefunc' and a new centroid 'centre'.
+		Scales and centres the coordinates of its vertices, given a scale function 'scalefunc' and the old centroid 'centre'.
 
 		scalefunc is a linear interpolator function made with makeInterpolator.
 
@@ -172,8 +196,8 @@ class polyline():
 
 			# Build interpolation functions between the two points.
 
-			xInterp = makeInterpolator(vertex.RA,other.RA)
-			yInterp = makeInterpolator(vertex.dec,other.dec)
+			xInterp = makeInterpolator([0,1],[vertex.RA,other.RA])
+			yInterp = makeInterpolator([0,1],[vertex.dec,other.dec])
 
 			# Work out how many points to place in between, keeping the end nodes as they are (in order to maintain sharp corners if required)
 
@@ -192,12 +216,23 @@ class polyline():
 
 				for place in fracs:
 
-					newVertex=[position(xinterp(place), yinterp(place))]
+					newVertex=position(xInterp(place), yInterp(place))
 					interpolatedVertices.append(newVertex)
 
 		# Update the vertex list to the newly interpolated version
 
 		self.vertices=interpolatedVertices
+
+		return None
+
+	def stereoProject(self, lonLatCentroid, R):
+		'''
+		Stereo transforms from a RA Dec coordinate to a cartesian coordinate following a projection. 
+		'''
+
+		for point in self.vertices:
+
+			point.stereoProject(lonLatCentroid, R)
 
 		return None
 
@@ -240,6 +275,45 @@ class multiPolyLine():
 
 		return [[minRA, maxRA],[minDec, maxDec]]
 
+	# Self-modification functions
 
-	# scaleandcentre, interpolate TODO
+	def scaleAndCentre(self, scalefunc, centre):
+		'''
+		Scales and centres the coordinates of its vertices, given a scale function 'scalefunc' and the old centroid 'centre'.
 
+		scalefunc is a linear interpolator function made with makeInterpolator.
+
+		centre is a position object.
+		'''
+
+		for child in self.collection:
+
+			child.scaleAndCentre(scalefunc, centre)
+
+		return None
+
+	def interpolate(self, nodesPerUnit):
+		'''
+		Interpolates naive straight lines between existing vertices and splits them into new vertices.
+
+		Aims to keep roughly nodesPerUnit nodes per unit of distance.
+
+		Keeps start and end nodes of each line as they are so corners remain in the same place.
+		'''
+
+		for child in self.collection:
+
+			child.interpolate(nodesPerUnit)
+
+		return None
+
+	def stereoProject(self, lonLatCentroid, R):
+		'''
+		Stereo transforms from a RA Dec coordinate to a cartesian coordinate following a projection. 
+		'''
+
+		for line in self.collection:
+
+			line.stereoProject(lonlatCentroid, R)
+
+		return None

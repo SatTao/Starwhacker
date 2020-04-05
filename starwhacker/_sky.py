@@ -8,6 +8,7 @@ import configparser
 
 from starwhacker._stars import star
 from starwhacker._coordinates import position, polyline
+from starwhacker._tools import makeInterpolator
 
 # Defines the sky class which holds data on stars and other celestial objects of interest. 
 # A sky can be cropped and projected and filtered to leave only objects of interest.
@@ -43,7 +44,7 @@ class sky():
 		with open(os.path.join(os.path.dirname(__file__),'../data',jsonFile), encoding='utf8') as starfile: 
 			stardict = json.load(starfile) # Load the file into a temporary dictionary
 		
-		# 
+		
 		for body in stardict['features']:
 
 			try: 
@@ -143,5 +144,97 @@ class sky():
 		self.objects['stars'] = list(filter(lambda x: x.matches(self.objects['boundary'], mags, BVs),self.objects['stars']))
 
 		# Later we will filter other object types here too
+
+		return self
+
+	def interpolate(self, nodesPerUnit):
+		'''
+		Tell all of our interpolatable objects to interpolate themselves.
+		'''
+
+		if self.objects['constellations']:
+			for con in self.objects['constellations']:
+				con.interpolate(nodesPerUnit)
+
+		if self.objects['boundary']:
+			self.objects['boundary'].interpolate(nodesPerUnit)
+
+		if self.objects['grid']:
+			self.objects['grid'].interpolate(nodesPerUnit)
+
+		return None
+
+	def stereoProject(self, lonLatCentroid=position(0,0), R=100):
+		'''
+		Projects all objects in the sky stereographically, about a centroid, with an R value.
+		'''
+
+		# All objects in self.objects need to be projected.
+
+		for key in self.objects.keys():
+
+			# If an entry in the objects dictionary is not populated then skip it.
+			if type(self.objects[key]) is type(None):
+				continue
+
+			# If it's a list, then each entry in the list will offer a projection method.
+			elif type(self.objects[key]) is list:
+				for item in self.objects[key]:
+					item.stereoProject(lonLatCentroid,R)
+
+			# If it's a single item (e.g. the boundary or RADEC grid), then do the stereo projection on it.
+			else:
+				self.objects[key].stereoProject(lonLatCentroid,R)
+
+		return self
+
+	def normalise(self):
+		'''
+		Centre everything about 0,0 and squash/stretch it so the greatest extents are -1->+1
+		'''
+
+		# Get the current extents from the boundary [[minRA, maxRA],[minDec, maxDec]]
+		# The greatest extents will map to -1 > +1, the other axis less.
+
+		[[minRA,maxRA],[minDec,maxDec]] = self.objects['boundary'].getExtents()
+
+		# Find the dead centres on each axis, because we need to scale and translate
+
+		cRA = minRA+(maxRA-minRA)/2
+		cDec = minDec+(maxDec-minDec)/2
+
+		# Modify the ranges as if they were centred on 0,0
+
+		minRA=minRA-cRA
+		maxRA=maxRA-cRA
+
+		minDec=minDec-cDec
+		maxDec=maxDec-cDec
+
+		# Find which axis has a greater extent
+
+		greater = [minRA, maxRA] if max((maxRA-minRA),(maxDec-minDec)) == (maxRA-minRA) else [minDec, maxDec]
+
+		# Make an interpolator (we will use it on both axes)
+
+		scalefunc = makeInterpolator(greater,[-1,1])
+		c=position(cRA,cDec)
+
+		# Scale each axis respecting the orignal centroid so that everything ends up centred on 0,0
+
+		for key in self.objects.keys():
+
+			# If an entry in the objects dictionary is not populated then skip it.
+			if type(self.objects[key]) is type(None):
+				continue
+
+			# If it's a list, then each entry in the list will offer a scale and centre method.
+			elif type(self.objects[key]) is list:
+				for item in self.objects[key]:
+					item.scaleAndCentre(scalefunc,c)
+
+			# If it's a single item (e.g. the boundary or RADEC grid), then do the stereo projection on it.
+			else:
+				self.objects[key].scaleAndCentre(scalefunc,c)		
 
 		return self
