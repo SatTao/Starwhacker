@@ -134,6 +134,13 @@ class polyline():
 
 		return len(self.vertices)>=3 and self.vertices[0].isIdentical(self.vertices[-1])
 
+	def isPopulated(self):
+		'''
+		Check whether there are any members in the self.vertices list.
+		'''
+
+		return len(self.vertices)
+
 	def getCopy(self):
 		'''
 		Returns a copy of itself
@@ -236,14 +243,23 @@ class polyline():
 
 		return None
 
+	def filter(self, boundary):
+		'''
+		Prunes positions in its vertices to include only those that fall within the boundary
+		'''
+
+		self.vertices = list(filter(lambda x: x.isInsidePolyline(boundary),self.vertices))
+
+		return None
+
 
 ##--------------------------------------------------------------------------------------------------------------------------------##
 
 
-# Defines the multiPolyLine class which is a collection of independent polyLines, suitable for a RADEC grid or a constellation.
+# Defines the multiPolyline class which is a collection of independent polyLines, suitable for a RADEC grid or a constellation.
 
-class multiPolyLine():
-	''' A class which defines a collection of independent polyLines and several functions to modify them. ''' 
+class multiPolyline():
+	''' A class which defines a collection of independent polylines and several functions to modify them. ''' 
 
 
 	def __init__(self, polyLineList):
@@ -257,6 +273,13 @@ class multiPolyLine():
 		Returns a copy of itself
 		'''
 		return multiPolyLine(self.collection)
+
+	def isPopulated(self):
+		'''
+		Check whether there are any members in the self.collection list.
+		'''
+
+		return len(self.collection)
 
 	def getExtents(self):
 		'''
@@ -286,9 +309,9 @@ class multiPolyLine():
 		centre is a position object.
 		'''
 
-		for child in self.collection:
+		for line in self.collection:
 
-			child.scaleAndCentre(scalefunc, centre)
+			line.scaleAndCentre(scalefunc, centre)
 
 		return None
 
@@ -301,9 +324,9 @@ class multiPolyLine():
 		Keeps start and end nodes of each line as they are so corners remain in the same place.
 		'''
 
-		for child in self.collection:
+		for line in self.collection:
 
-			child.interpolate(nodesPerUnit)
+			line.interpolate(nodesPerUnit)
 
 		return None
 
@@ -314,6 +337,22 @@ class multiPolyLine():
 
 		for line in self.collection:
 
-			line.stereoProject(lonlatCentroid, R)
+			line.stereoProject(lonLatCentroid, R)
 
 		return None
+
+	def filter(self, boundary):
+		'''
+		Prunes polylines in its collection so they only include points that fall within the boundary.
+		Removes the polyline completely if it is unpopulated after filtering (no part of it falls within the boundary)
+		'''
+
+		newCollection = []
+		for line in self.collection:
+			line.filter(boundary)
+			if line.isPopulated():
+				newCollection.append(line)
+		self.collection=newCollection
+
+		return None
+

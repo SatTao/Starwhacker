@@ -7,9 +7,13 @@ from starwhacker._coordinates import position
 class star(position):
 	'''A class which defines a star, including technical information, and several utility functions'''
 
-	def __init__(self, ID, rightAscension, declination, magnitude, blueVioletIndex, designation, constellation):
+	def __init__(self, ID, name, rightAscension, declination, magnitude, blueVioletIndex, designation, constellation):
 
 		super().__init__(rightAscension, declination)
+
+		# The name
+
+		self.name=name
 
 		# The apparent magnitude
 

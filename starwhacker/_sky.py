@@ -7,7 +7,9 @@ import json
 import configparser
 
 from starwhacker._stars import star
-from starwhacker._coordinates import position, polyline
+from starwhacker._radec import radec
+from starwhacker._constellation import constellation
+from starwhacker._coordinates import position, polyline, multiPolyline
 from starwhacker._tools import makeInterpolator
 
 # Defines the sky class which holds data on stars and other celestial objects of interest. 
@@ -69,6 +71,11 @@ class sky():
 				thisBV = 0.0
 
 			try: 
+				thisName = str(body['properties']['name'])
+			except:
+				thisName = ''
+
+			try: 
 				thisDesig = str(body['properties']['desig'])
 			except:
 				thisDesig = ''
@@ -78,7 +85,8 @@ class sky():
 			except:
 				thisCon = 'NONE'	
 
-			newStar = star(thisID, 
+			newStar = star(thisID,
+				thisName, 
 				thisRA, 
 				thisDec, 
 				thisMag, 
@@ -90,14 +98,49 @@ class sky():
 
 		return self
 
+	def addConstellationsFromJSON(self, jsonFile):
+		'''
+		Adds constellations defined in a supplied json file to the objects dictionary.
+		'''
+
+		# encoding ensures there are no invalid characters - some star names are not provided in unicode.
+		constdict=None
+		with open(os.path.join(os.path.dirname(__file__),'../data',jsonFile), encoding='utf8') as constfile:  			
+			constdict = json.load(constfile)
+
+		for body in constdict['features']:
+
+			thisID = body['id']
+			thisMultiCoord = body['geometry']['coordinates'] 
+			# thisMultiCoord is a list of lists of pair lists of coordinates.
+
+			listOfPolylines=[]
+			for section in thisMultiCoord:
+				thisSection=[]
+				for point in section:
+					thisSection.append(position(point[0],point[1]))
+				listOfPolylines.append(polyline(thisSection))
+
+			self.objects['constellations'].append(constellation(thisID, listOfPolylines))
+
+		return self
+
+	def makeGrid(self,majorGrid):
+		'''
+		Create and assign the radec grid based on the majorGridSize
+		'''
+
+		self.objects['grid']=radec(majorGrid)
+
+		return self
+
+
 	# Simple utility functions
 
 	def vitalStatistics(self):
 		'''
 		Print out a summary of the stars, constellations and ranges in our list of stars
 		'''
-
-		# Check if this is a named skyView or just a sky
 
 		print('\nThis sky contains:\n')
 
@@ -112,8 +155,11 @@ class sky():
 		print('BV\tMin: ~{0:0.2f} \tMax: ~{1:0.2f} '.format(min(BVs), max(BVs)))
 
 		print('\nCONSTELLATIONS ({0})\n'.format(len(self.objects['constellations'])))
+		members=[con.isPopulated() for con in self.objects['constellations']]
+		print('Lines\tMin: {0} \tMax: {1} \tsections'.format(min(members), max(members)))
+		names=[con.name for con in self.objects['constellations']]
+		print('These constellations:\t'+', '.join(names))
 		
-		# TODO print('CONSTELLATIONS') data etc etc
 
 		return None
 
@@ -135,6 +181,9 @@ class sky():
 
 		self.name=config[configurationName]['name']
 
+		centroidList=json.loads(config[configurationName]['centroid'])
+		self.centroid=position(centroidList[0], centroidList[1])
+
 		self.objects['boundary'] = polyline([position(p[0],p[1]) for p in json.loads(config[configurationName]['boundary'])])
 		mags=json.loads(config[configurationName]['mags'])
 		BVs=json.loads(config[configurationName]['BVs'])
@@ -142,6 +191,19 @@ class sky():
 		# Then we filter stars based on this data
 
 		self.objects['stars'] = list(filter(lambda x: x.matches(self.objects['boundary'], mags, BVs),self.objects['stars']))
+
+		# Now lets filter the radec grid on this data
+
+		self.objects['grid'].filter(self.objects['boundary'])
+
+		# Now we filter constellations based on this data
+
+		newConstellationList=[]
+		for con in self.objects['constellations']:
+			con.filter(self.objects['boundary'])
+			if con.isPopulated():
+				newConstellationList.append(con)
+		self.objects['constellations']=newConstellationList
 
 		# Later we will filter other object types here too
 
@@ -164,12 +226,14 @@ class sky():
 
 		return None
 
-	def stereoProject(self, lonLatCentroid=position(0,0), R=100):
+	def stereoProject(self):
 		'''
 		Projects all objects in the sky stereographically, about a centroid, with an R value.
 		'''
 
 		# All objects in self.objects need to be projected.
+
+		R=100
 
 		for key in self.objects.keys():
 
@@ -180,11 +244,11 @@ class sky():
 			# If it's a list, then each entry in the list will offer a projection method.
 			elif type(self.objects[key]) is list:
 				for item in self.objects[key]:
-					item.stereoProject(lonLatCentroid,R)
+					item.stereoProject(self.centroid,R)
 
 			# If it's a single item (e.g. the boundary or RADEC grid), then do the stereo projection on it.
 			else:
-				self.objects[key].stereoProject(lonLatCentroid,R)
+				self.objects[key].stereoProject(self.centroid,R)
 
 		return self
 
