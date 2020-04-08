@@ -12,10 +12,11 @@ from starwhacker._kicadtemplates import templates
 
 class board():
 
-	def __init__(self, fromSky, majorDim):
+	def __init__(self, fromSky, majorDim, targetConstellation='XXX'):
 
 		self.sky = fromSky
 		self.majorDim = majorDim
+		self.targetConstellation=targetConstellation
 		self.diagOffset=20
 		self.scaleX = makeInterpolator([-1,1],[0+self.diagOffset,self.majorDim+self.diagOffset])
 		self.scaleY = makeInterpolator([-1,1],[self.majorDim+self.diagOffset, 0+self.diagOffset])
@@ -62,6 +63,9 @@ class board():
 			# Close the module
 			self.doCloseModule(file)
 
+			# Insert the constellations as traces with mask-free lines over the top
+			for con in self.sky.objects['constellations']:
+				self.doConstellation(file, con)
 
 			# Write the final bracket
 			file.write(templates['ender'])
@@ -135,6 +139,21 @@ class board():
 			file.write(templates['silk_text_back'].format(text, posX, posY, size, size))
 
 		return None
+
+	def doConstellation(self, file, con):
+
+		for section in con.collection:
+			for index, vertex in enumerate(section.vertices):
+				if index < len(section.vertices)-1:
+					x1 = self.scaleX(vertex.RA)
+					y1 = self.scaleY(vertex.dec)
+					end = section.vertices[index+1]
+					x2 = self.scaleX(end.RA)
+					y2 = self.scaleY(end.dec)
+					w=0.5
+					if con.name.lower()==self.targetConstellation.lower():
+						w=1
+					file.write(templates['constellation_line'].format(x1,y1,x2,y2, w))
 
 
 

@@ -19,18 +19,11 @@ s.vitalStatistics()
 stop=time.time()
 print('{0:0.4f} seconds elapsed'.format(stop-start))
 
-print('Filtering the sky')
+print('Filtering the sky, and interpolating lines')
 
 start=time.time()
-s.filter('scorpio')
+s.filterAndInterpolate('scorpio', 1.0)
 s.vitalStatistics()
-stop=time.time()
-print('{0:0.4f} seconds elapsed'.format(stop-start))
-
-print('Interpolating')
-
-start=time.time()
-s.interpolate(1.0)
 stop=time.time()
 print('{0:0.4f} seconds elapsed'.format(stop-start))
 
@@ -50,10 +43,10 @@ s.vitalStatistics()
 stop=time.time()
 print('{0:0.4f} seconds elapsed'.format(stop-start))
 
-d=drawing(s,200) # Major Dimension of 200mm
+d=drawing(s,200,targetConstellation='Sco') # Major Dimension of 200mm, target constellation is scorpio
 d.render()
 
-b=board(s,200) # Major dimension of 200mm
+b=board(s,200,targetConstellation='Sco') # Major dimension of 200mm, target constellation is scorpio
 b.render()
 
 print('Whacked!')

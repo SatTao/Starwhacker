@@ -34,6 +34,11 @@ templates = {
 '''(pad {} smd circle (at {} {}) (size {} {}) (layers F.Cu F.Mask) (solder_mask_margin 0.02))
 ''',
 
+'constellation_line':
+'''(segment (start {0} {1}) (end {2} {3}) (width {4}) (layer F.Cu) (net 0))
+(gr_line (start {0} {1}) (end {2} {3}) (angle 90) (layer F.Mask) (width {4}))
+''',
+
 'silk_line':
 '''(fp_line (start {} {}) (end {} {}) (layer F.SilkS) (width 0.15))
 ''',

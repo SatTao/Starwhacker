@@ -15,11 +15,12 @@ import datetime
 class drawing():
 	''' A class that defines a drawing object, which takes data from a sky object and exports it as an image'''
 
-	def __init__(self, fromSky, realMajorDim):
+	def __init__(self, fromSky, realMajorDim, targetConstellation='XXX'):
 
 		self.sky=fromSky
 		self.pixelsPerMm=10
 		self.realMajorDim=realMajorDim
+		self.targetConstellation=targetConstellation
 		self.majorDim = self.realMajorDim*self.pixelsPerMm
 		self.storagePath=os.path.join(os.path.dirname(__file__),'../output/_images/',self.sky.name)
 		if not os.path.isdir(self.storagePath):
@@ -56,7 +57,10 @@ class drawing():
 
 		for con in self.sky.objects['constellations']:
 			for line in con.collection:
-				self.drawLine(draw, scaleX, scaleY, line.vertices, 'GoldenRod', math.ceil(.5*self.pixelsPerMm))
+				w=0.5
+				if con.name.lower()==self.targetConstellation.lower():
+					w=1
+				self.drawLine(draw, scaleX, scaleY, line.vertices, 'GoldenRod', math.ceil(w*self.pixelsPerMm))
 
 		# Draw in the stars in gold
 

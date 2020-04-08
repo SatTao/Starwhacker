@@ -165,11 +165,13 @@ class sky():
 
 	# Self-modification functions
 
-	def filter(self,configurationName):
+	def filterAndInterpolate(self,configurationName, nodesPerUnit):
 		'''
 		Filter the objects of the sky to include only those matching a set of conditions.
 
 		Conditions are defined in a named block (configurationName) in the _bounds.ini file.
+
+		Line items are then interpolated and filtered separately so they draw up to the boundary neatly.
 
 		Later we may overload this function to allow for inline condition setting too.
 		'''
@@ -196,7 +198,13 @@ class sky():
 
 		self.objects['grid'].filter(self.objects['boundary'])
 
-		# Now we filter constellations based on this data
+		# Now let's interpolate the constellation lines
+
+		if self.objects['constellations']:
+			for con in self.objects['constellations']:
+				con.interpolate(nodesPerUnit)
+
+		# And then filter them
 
 		newConstellationList=[]
 		for con in self.objects['constellations']:
@@ -205,26 +213,16 @@ class sky():
 				newConstellationList.append(con)
 		self.objects['constellations']=newConstellationList
 
-		# Later we will filter other object types here too
-
-		return self
-
-	def interpolate(self, nodesPerUnit):
-		'''
-		Tell all of our interpolatable objects to interpolate themselves.
-		'''
-
-		if self.objects['constellations']:
-			for con in self.objects['constellations']:
-				con.interpolate(nodesPerUnit)
+		# Now finally we can interpolate the boundary
 
 		if self.objects['boundary']:
 			self.objects['boundary'].interpolate(nodesPerUnit)
 
-		if self.objects['grid']:
-			self.objects['grid'].interpolate(nodesPerUnit)
+		# Later we will filter other object types here too
 
-		return None
+		# Don't bother interpolating the RADEC grid because it is already small.
+
+		return self
 
 	def stereoProject(self):
 		'''
