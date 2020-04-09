@@ -43,6 +43,10 @@ templates = {
 '''(fp_line (start {} {}) (end {} {}) (layer F.SilkS) (width 0.15))
 ''',
 
+'silk_circle_back':
+'''(fp_circle (center {0} {1}) (end {0} {2}) (layer B.SilkS) (width 0.2))
+''',
+
 'silk_text':
 '''(fp_text user "{}" (at {} {}) (layer F.SilkS)
 (effects (font (size {} {}) (thickness 0.15)))
@@ -51,6 +55,18 @@ templates = {
 
 'silk_text_back':
 '''(fp_text user "{}" (at {} {}) (layer B.SilkS)
+(effects (font (size {} {}) (thickness 0.15)) (justify mirror))
+)
+''',
+
+'silk_text_gr':
+'''(gr_text user "{}" (at {} {}) (layer F.SilkS)
+(effects (font (size {} {}) (thickness 0.15)))
+)
+''',
+
+'silk_text_back_gr':
+'''(gr_text user "{}" (at {} {}) (layer B.SilkS)
 (effects (font (size {} {}) (thickness 0.15)) (justify mirror))
 )
 ''',

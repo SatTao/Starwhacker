@@ -245,12 +245,44 @@ class polyline():
 
 	def filter(self, boundary):
 		'''
-		Prunes positions in its vertices to include only those that fall within the boundary
+		Prunes positions in its vertices to include only those that fall within the boundary.
 		'''
 
 		self.vertices = list(filter(lambda x: x.isInsidePolyline(boundary),self.vertices))
 
 		return None
+
+	def getFilterCutComponents(self, boundary):
+		'''
+		Returns a list of polylines that are distinct sections of the previous whole polyline, after checking against a boundary.
+		'''
+
+		# Check which of our vertices fall within the boundary
+		validVertices = list(map(lambda x: x.isInsidePolyline(boundary),self.vertices))
+		# Replace valid instances with the str of the index of that vertex, otherwise '.', concated as a string
+		for index, value in enumerate(validVertices): validVertices[index]=str(index) if value else '.'
+		# ['32','33','.','45','46']
+		# Join the string with whitespace and then split the string on '.'
+		validVertices=' '.join(validVertices).split('.')
+		# ['32 33 . 45 46']
+		# ['32 33 ',' 45 46']
+		for index, seq in enumerate(validVertices):
+			temp=seq.split(' ')
+			# [['32','33', ''],['', 45','46']]
+			temp=list(filter(lambda x : x!='', temp))
+			validVertices[index]=temp
+			# [['32','33'],['45','46']]
+		# Go through the resulting list and use it to populate a list of valid components
+		components=[]
+		for sublist in validVertices:
+			if len(sublist)>1:
+				sub=[]
+				for i in sublist:
+					sub.append(self.vertices[int(i)])
+				components.append(polyline(sub))
+			continue
+
+		return components
 
 
 ##--------------------------------------------------------------------------------------------------------------------------------##
@@ -297,6 +329,15 @@ class multiPolyline():
 		maxDec= max([extent[1][1] for extent in childExtents])
 
 		return [[minRA, maxRA],[minDec, maxDec]]
+
+	def getCentre(self):
+		'''
+		Returns the centre of the multiPolyline
+		'''
+
+		[[minRA, maxRA],[minDec, maxDec]] = self.getExtents()
+
+		return position((minRA+(maxRA-minRA)/2),(minDec+(maxDec-minDec)/2))
 
 	# Self-modification functions
 
@@ -355,4 +396,18 @@ class multiPolyline():
 		self.collection=newCollection
 
 		return None
+
+	def filterAndCut(self, boundary):
+		'''
+		Prunes polylines in its collection, and splits them into sublines if necessary
+		'''
+		newCollection = []
+		for line in self.collection:
+			lineList=line.getFilterCutComponents(boundary)
+			for subline in lineList:
+				newCollection.append(subline)
+		self.collection=newCollection
+
+		return None
+
 

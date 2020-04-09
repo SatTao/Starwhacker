@@ -56,11 +56,19 @@ class drawing():
 		# Draw constellations in gold, like the stars 
 
 		for con in self.sky.objects['constellations']:
-			for line in con.collection:
 				w=0.5
+				fntsize=24
 				if con.name.lower()==self.targetConstellation.lower():
 					w=1
-				self.drawLine(draw, scaleX, scaleY, line.vertices, 'GoldenRod', math.ceil(w*self.pixelsPerMm))
+					fntsize=36
+				for line in con.collection:
+					self.drawLine(draw, scaleX, scaleY, line.vertices, 'GoldenRod', math.ceil(w*self.pixelsPerMm))
+				fnt = ImageFont.truetype("arial.ttf", fntsize)
+				# Get the centre of the visible constellation, and type the name there.
+				cen=con.getCentre()
+				textx=round(scaleX(cen.RA)*self.pixelsPerMm)
+				texty=round(scaleY(cen.dec)*self.pixelsPerMm)
+				draw.text((textx, texty), con.name, font=fnt, fill='white')
 
 		# Draw in the stars in gold
 
@@ -138,15 +146,4 @@ class drawing():
 			if holeSize>0:
 				draw.ellipse([starPosx-holeSize/2,starPosy-holeSize/2,starPosx+holeSize/2,starPosy+holeSize/2],fill='white')
 
-			#If the star has a name then put it next to it
-			if len(body.name):
-				fnt = ImageFont.truetype("arial.ttf", 24)
-				draw.text((starPosx + padSize, starPosy), body.name, font=fnt, fill='white')
-
-
 		return None
-
-
-
-
-

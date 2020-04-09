@@ -55,7 +55,7 @@ class sky():
 				thisID = getRandomString(6)
 
 			try: 
-				thisRA = float(body['geometry']['coordinates'][0])
+				thisRA = -float(body['geometry']['coordinates'][0]) # Because the coords in this file are backwards lol
 				thisDec = float(body['geometry']['coordinates'][1])
 			except:
 				continue # Abandon if there's nothing here - it's really useless
@@ -118,7 +118,7 @@ class sky():
 			for section in thisMultiCoord:
 				thisSection=[]
 				for point in section:
-					thisSection.append(position(point[0],point[1]))
+					thisSection.append(position(-point[0],point[1])) # Because the coords in this file are backwards lol
 				listOfPolylines.append(polyline(thisSection))
 
 			self.objects['constellations'].append(constellation(thisID, listOfPolylines))
@@ -208,7 +208,7 @@ class sky():
 
 		newConstellationList=[]
 		for con in self.objects['constellations']:
-			con.filter(self.objects['boundary'])
+			con.filterAndCut(self.objects['boundary'])
 			if con.isPopulated():
 				newConstellationList.append(con)
 		self.objects['constellations']=newConstellationList

@@ -106,3 +106,8 @@ venv.bak/
 # Image files 
 
 *.png
+
+# Kicad files
+
+*.kicad_pcb
+*.pro

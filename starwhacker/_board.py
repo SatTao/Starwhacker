@@ -63,9 +63,15 @@ class board():
 			# Close the module
 			self.doCloseModule(file)
 
-			# Insert the constellations as traces with mask-free lines over the top
+			# Open a module containing the radec grid silkscreen
+			# self.doOpenModule(file, 'CONSTELLATIONS', 'F.Cu', 0, 0, 'ftprnt_CONSTELLATIONS', 'ftprnt_CONSTELLATIONS')
+
+			# Insert the constellations 
 			for con in self.sky.objects['constellations']:
 				self.doConstellation(file, con)
+
+			# Close the module
+			# self.doCloseModule(file)
 
 			# Write the final bracket
 			file.write(templates['ender'])
@@ -114,6 +120,7 @@ class board():
 		# if the star has a name
 		if len(name):
 			self.doSilkScreenText(file, name, posX+2.5, posY, 2, back=True)
+			file.write(templates['silk_circle_back'].format(posX, posY, (posY + size/2 + 0.3)))
 
 		return None
 
@@ -140,7 +147,22 @@ class board():
 
 		return None
 
+	def doSilkScreenText_gr(self, file, text, posX, posY, size, back=False):
+
+		if not back:
+			file.write(templates['silk_text_gr'].format(text, posX, posY, size, size))
+		else:
+			file.write(templates['silk_text_back_gr'].format(text, posX, posY, size, size))
+
+		return None
+
 	def doConstellation(self, file, con):
+
+		w=0.5
+		fntsize=24
+		if con.name.lower()==self.targetConstellation.lower():
+			w=1
+			fntsize=36
 
 		for section in con.collection:
 			for index, vertex in enumerate(section.vertices):
@@ -150,10 +172,14 @@ class board():
 					end = section.vertices[index+1]
 					x2 = self.scaleX(end.RA)
 					y2 = self.scaleY(end.dec)
-					w=0.5
-					if con.name.lower()==self.targetConstellation.lower():
-						w=1
+					
 					file.write(templates['constellation_line'].format(x1,y1,x2,y2, w))
+
+		# Print the name in the middle
+		cen = con.getCentre()
+		textx=round(self.scaleX(cen.RA))
+		texty=round(self.scaleY(cen.dec))
+		# self.doSilkScreenText_gr(file, con.name, textx, texty, fntsize) TODO! Fix this bastard
 
 
 
