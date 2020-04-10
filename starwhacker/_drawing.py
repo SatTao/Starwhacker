@@ -46,7 +46,13 @@ class drawing():
 
 		# Draw in the board bounded by boundary, in black.
 
-		self.drawPolygon(draw, scaleX, scaleY, self.sky.objects['boundary'].vertices, (12,10,20))
+		self.drawPolygon(draw, scaleX, scaleY, self.sky.objects['boundary'].vertices, (10,10,20))
+
+		# Draw in the galactic background (which is copper covered in mask, so underneath all other elements)
+
+		for blob in self.sky.objects['galaxy'].collection:
+			if len(blob.vertices)>2:
+				self.drawPolygon(draw, scaleX, scaleY, blob.vertices, (30,30,10))
 
 		# Draw in the radec grid crosses in white (silkscreen) (do it first because silkscreen is subtracted from mask)
 

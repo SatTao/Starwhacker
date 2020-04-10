@@ -14,7 +14,9 @@ print('Now whacking!')
 print('Adding stars to sky')
 
 start=time.time()
-s=sky().addStarsFromJson('stars.14.json').addConstellationsFromJSON('constellations.lines.json').makeGrid(10)
+
+s=sky().addStarsFromJson('stars.14.json').addConstellationsFromJSON('constellations.lines.json').makeGrid(10).makeGalaxy('GAIA_pixMod.png', 2)
+
 s.vitalStatistics()
 stop=time.time()
 print('{0:0.4f} seconds elapsed'.format(stop-start))

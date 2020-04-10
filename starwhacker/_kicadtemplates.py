@@ -60,15 +60,20 @@ templates = {
 ''',
 
 'silk_text_gr':
-'''(gr_text user "{}" (at {} {}) (layer F.SilkS)
+'''(gr_text "{}" (at {} {}) (layer F.SilkS)
 (effects (font (size {} {}) (thickness 0.15)))
 )
 ''',
 
 'silk_text_back_gr':
-'''(gr_text user "{}" (at {} {}) (layer B.SilkS)
+'''(gr_text "{}" (at {} {}) (layer B.SilkS)
 (effects (font (size {} {}) (thickness 0.15)) (justify mirror))
 )
+''',
+
+'polygon':
+'''
+(fp_poly (pts {}) (layer F.Cu) (width 0.01))
 ''',
 
 'header':

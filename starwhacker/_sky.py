@@ -7,6 +7,7 @@ import json
 import configparser
 
 from starwhacker._stars import star
+from starwhacker._galactic import galaxy
 from starwhacker._radec import radec
 from starwhacker._constellation import constellation
 from starwhacker._coordinates import position, polyline, multiPolyline
@@ -134,6 +135,14 @@ class sky():
 
 		return self
 
+	def makeGalaxy(self, source, samplesPerDegree):
+		'''
+		Create and assign the galactic background shapes based on the source image
+		'''
+
+		self.objects['galaxy']=galaxy(source, samplesPerDegree)
+
+		return self
 
 	# Simple utility functions
 
@@ -195,6 +204,7 @@ class sky():
 		self.objects['stars'] = list(filter(lambda x: x.matches(self.objects['boundary'], mags, BVs),self.objects['stars']))
 
 		# Now lets filter the radec grid on this data
+		# Don't bother interpolating the RADEC grid because it is already small.
 
 		self.objects['grid'].filter(self.objects['boundary'])
 
@@ -213,14 +223,16 @@ class sky():
 				newConstellationList.append(con)
 		self.objects['constellations']=newConstellationList
 
+		# Now we filter the galaxy, jealously cutting blobs so they fit on the drawing
+		# No need to interpolate since these are dense already
+		self.objects['galaxy'].filter(self.objects['boundary'])
+
 		# Now finally we can interpolate the boundary
 
 		if self.objects['boundary']:
 			self.objects['boundary'].interpolate(nodesPerUnit)
 
 		# Later we will filter other object types here too
-
-		# Don't bother interpolating the RADEC grid because it is already small.
 
 		return self
 

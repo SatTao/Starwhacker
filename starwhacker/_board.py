@@ -37,6 +37,15 @@ class board():
 			# Write the Boundary
 			self.doBoundary(file, self.sky.objects['boundary'].vertices)
 
+			# Open a module containing the galactic background
+			self.doOpenModule(file, 'GALACTIC', 'F.Cu', 0, 0, 'ftprnt_GALACTIC', 'ftprnt_GALACTIC')
+
+			for pol in self.sky.objects['galaxy'].collection:
+				self.doPolygon(file, pol)
+
+			# Close the module
+			self.doCloseModule(file)
+
 			# Open a module containing the stars
 			self.doOpenModule(file, 'STARS', 'F.Cu', 0, 0, 'ftprnt_STARS', 'ftprnt_STARS')
 
@@ -120,7 +129,7 @@ class board():
 		# if the star has a name
 		if len(name):
 			self.doSilkScreenText(file, name, posX+2.5, posY, 2, back=True)
-			file.write(templates['silk_circle_back'].format(posX, posY, (posY + size/2 + 0.3)))
+			file.write(templates['silk_circle_back'].format(posX, posY, (posY + size/2 + 0.5)))
 
 		return None
 
@@ -181,8 +190,18 @@ class board():
 		texty=round(self.scaleY(cen.dec))
 		# self.doSilkScreenText_gr(file, con.name, textx, texty, fntsize) TODO! Fix this bastard
 
+		return None
 
+	def doPolygon(self, file, pol):
 
+		# We need to create a series of (xy something else) separated by spaces to insert in the template
+		xylist=[]
+		for pos in pol.vertices:
+			xylist.append('(xy {} {})'.format(self.scaleX(pos.RA), self.scaleY(pos.dec)))
+		xystring=' '.join(xylist)
+		file.write(templates['polygon'].format(xystring))
+		
+		return None
 
 
 
